@@ -17,7 +17,7 @@ function App() {
   }, []);
 
   const fetchUsuarios = async () => {
-    const response = await axios.get('http://localhost:5031/api/usuarios');
+    const response = await axios.get('http://localhost:5031/api/Usuarios');
     setUsuarios(response.data);
   };
 
@@ -37,14 +37,15 @@ function App() {
   };
 
   const handleDeleteUsuario = async (id) => {
-    await axios.delete(`http://localhost:5031/api/usuarios/${id}`);
+    await axios.delete(`http://localhost:5031/api/Usuarios/${id}`);
     fetchUsuarios();
   };
 
   const handleSaveUsuario = async () => {
     if (selectedUsuario.id === 0) {
+      console.log(selectedUsuario.id);
       // Agregar un nuevo usuario
-      await axios.post('http://localhost:5031/api/usuarios', selectedUsuario);
+      await axios.post('http://localhost:5031/api/Usuarios', selectedUsuario);
     } else {
       // Editar un usuario existente
       await axios.put(`http://localhost:5031/api/usuarios/${selectedUsuario.id}`, selectedUsuario);
