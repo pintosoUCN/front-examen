@@ -1,121 +1,153 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Container, Button, Table, Modal, Form } from 'react-bootstrap';
-
+import { Button, Modal, Table, Form } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
-  const [usuarios, setUsuarios] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedUsuario, setSelectedUsuario] = useState({
-    id: 0,
-    nombre: '',
-  });
+    const [usuarios, setUsuarios] = useState([]);
+    const [showAgregarModal, setShowAgregarModal] = useState(false);
+    const [nombreUsuario, setNombreUsuario] = useState('');
+    const [usuarioSeleccionadoID, setUsuarioSeleccionadoID] = useState(null);
 
-  useEffect(() => {
-    fetchUsuarios();
-  }, []);
+    useEffect(() => {
+        // Carga la lista de usuarios al cargar la página
+        cargarUsuarios();
+    }, []);
 
-  const fetchUsuarios = async () => {
-    const response = await axios.get('http://localhost:5031/api/Usuarios');
-    setUsuarios(response.data);
+    const cargarUsuarios = async () => {
+        try {
+            const response = await fetch('http://localhost:5031/api/usuarios');
+            if (response.ok) {
+                const data = await response.json();
+                setUsuarios(data);
+            }
+        } catch (error) {
+            console.error('Error al cargar la lista de usuarios', error);
+        }
+    };
+
+    const mostrarAgregarModal = () => {
+        setShowAgregarModal(true);
+    };
+
+    const cerrarAgregarModal = () => {
+        setShowAgregarModal(false);
+    };
+
+    const crearUsuario = async () => {
+      try {
+          const nuevoUsuario = {
+              usuarioID: usuarioSeleccionadoID, // Utiliza el ID del usuario seleccionado
+              nombre: nombreUsuario,
+              reservas: [
+                  {
+                      reservaID: 1,
+                      usuarioID: usuarioSeleccionadoID, // Utiliza el ID del usuario seleccionado
+                      aplicacionID: 0,
+                      fechaReserva: "2023-09-09T21:38:49.659Z",
+                      duracionDias: 0,
+                      usuario: "string",
+                      aplicacion: {
+                          aplicacionID: 0,
+                          nombre: "string",
+                          reservas: ["string"]
+                      }
+                  }
+              ]
+          };
+  
+          const response = await fetch('http://localhost:5031/api/usuarios', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(nuevoUsuario),
+          });
+  
+          if (response.status === 201) {
+              cargarUsuarios();
+              setNombreUsuario('');
+              cerrarAgregarModal();
+          }
+      } catch (error) {
+          console.error('Error al crear un usuario', error);
+      }
   };
 
-  const handleShowModal = (usuario) => {
-    setSelectedUsuario(usuario);
-    setShowModal(true);
-  };
-
-  const handleAddUsuario = () => {
-    setSelectedUsuario({ id: 0, nombre: '' }); // Agregar un nuevo usuario
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedUsuario({ id: 0, nombre: '' }); // Reiniciar el usuario seleccionado
-    setShowModal(false);
-  };
-
-  const handleDeleteUsuario = async (id) => {
-    await axios.delete(`http://localhost:5031/api/Usuarios/${id}`);
-    fetchUsuarios();
-  };
-
-  const handleSaveUsuario = async () => {
-    if (selectedUsuario.id === 0) {
-      console.log(selectedUsuario.id);
-      // Agregar un nuevo usuario
-      await axios.post('http://localhost:5031/api/Usuarios', selectedUsuario);
-    } else {
-      // Editar un usuario existente
-      await axios.put(`http://localhost:5031/api/usuarios/${selectedUsuario.id}`, selectedUsuario);
+  const eliminarUsuario = async () => {
+    if (!usuarioSeleccionadoID) {
+        return; // No se seleccionó ningún usuario para eliminar
     }
-    fetchUsuarios();
-    handleCloseModal();
-  };
+    
+    try {
+        const response = await fetch(`http://localhost:5031/api/usuarios/${usuarioSeleccionadoID}`, {
+            method: 'DELETE',
+        });
 
-  const generarInformeReservas = async () => {
-    // Aquí puedes enviar una solicitud al servidor para generar el informe
-    // Puedes utilizar axios u otra biblioteca para hacer la solicitud
-    // El servidor debe proporcionar una ruta para generar el informe
-  };
+        if (response.status === 204) {
+            cargarUsuarios();
+            setUsuarioSeleccionadoID(null); // Reiniciar el usuario seleccionado
+        }
+    } catch (error) {
+        console.error('Error al eliminar un usuario', error);
+    }
+};
 
-  return (
-    <Container>
-      <h1 className="my-4">Administración de Usuarios</h1>
-      <Button variant="primary" className="mb-3" onClick={handleAddUsuario}>
-        Agregar Usuario
-      </Button>
-      <Table striped bordered hover>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {usuarios.map((usuario) => (
-            <tr key={usuario.id}>
-              <td>{usuario.id ? usuario.id.toString() : ''}</td>
-              <td>{usuario.nombre}</td>
-              <td>
-                <Button variant="info" onClick={() => handleShowModal(usuario)}>Editar</Button>{' '}
-                <Button variant="danger" onClick={() => handleDeleteUsuario(usuario.id)}>Eliminar</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+    return (
+        <div className="container">
+            <h1>Administración de Usuarios</h1>
 
-      <Button variant="success" onClick={generarInformeReservas} className="mb-4">
-        Generar Informe de Reservas
-      </Button>
+            <Button variant="primary" onClick={mostrarAgregarModal}>
+                Agregar Usuario
+            </Button>
 
-      <Modal show={showModal} onHide={handleCloseModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>{selectedUsuario.id === 0 ? 'Agregar Usuario' : 'Editar Usuario'}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group controlId="formNombre">
-              <Form.Label>Nombre</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Ingrese el nombre"
-                value={selectedUsuario.nombre}
-                onChange={(e) => setSelectedUsuario({ ...selectedUsuario, nombre: e.target.value })}
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>Cerrar</Button>
-          <Button variant="primary" onClick={handleSaveUsuario}>Guardar</Button>
-        </Modal.Footer>
-      </Modal>
-    </Container>
-  );
+            <Table striped bordered hover>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {usuarios.map((usuario) => (
+                        <tr key={usuario.usuarioID}>
+                            <td>{usuario.nombre}</td>
+                            <td>
+                                <Button variant="info" onClick={() => setUsuarioSeleccionadoID(usuario.usuarioID)}>Editar</Button>{' '}
+                                <Button variant="danger" onClick={eliminarUsuario}>Eliminar</Button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </Table>
+
+            <Modal show={showAgregarModal} onHide={cerrarAgregarModal}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Agregar Usuario</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form>
+                        <Form.Group controlId="nombreUsuario">
+                            <Form.Label>Nombre de Usuario</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="Ingrese el nombre de usuario"
+                                value={nombreUsuario}
+                                onChange={(e) => setNombreUsuario(e.target.value)}
+                            />
+                        </Form.Group>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={cerrarAgregarModal}>
+                        Cerrar
+                    </Button>
+                    <Button variant="primary" onClick={crearUsuario}>
+                        Guardar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </div>
+    );
 }
 
 export default App;
